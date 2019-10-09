@@ -14,6 +14,55 @@ from tqdm import tqdm
 from utils.utils import xyxy2xywh
 
 
+class LoadVideo:
+    def __init__(self, path, img_size=416):
+        if not os.path.isfile(path):
+            print("{} is not a file, exiting..".format(path))
+            exit(1)
+        self.files = []
+        # put all frames in self.files
+        cap = cv2.VideoCapture(path)
+        if not cap.isOpened():
+            print("Could not open file in {}".format(path))
+            exit(1)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                print("Could not read frame in {}".format(path))
+                break
+
+            self.files.append(frame)
+
+        self.nF = len(self.files)
+        self.height = img_size
+
+        assert self.nF > 0, "No images found in " + path
+
+    def __iter__(self):
+        self.count = -1
+        return self
+
+    def __next__(self):
+        self.count += 1
+        if self.count == self.nF:
+            raise StopIteration
+                    
+        img0 = self.files[self.count]
+        
+        img_path = "video_{}.jpg".format(self.count)
+        
+        img, _, _, _ = letterbox(img0, height=self.height)
+
+        img = img[:, :, ::-1].transpose(2, 0, 1)
+        img = np.ascontiguousarray(img, dtype=np.float32)
+        img /= 255.0
+
+        return img_path, img, img0
+
+    def __len__(self):
+        return self.nF
+
+
 class LoadImages:  # for inference
     def __init__(self, path, img_size=416):
         self.height = img_size
@@ -200,6 +249,12 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             labels[:, 1:5] = xyxy2xywh(labels[:, 1:5]) / self.img_size
 
         if self.augment:
+            img, labels = fisheye_augmentation(img, labels)
+
+        if self.augment and random.random() > 0.5:
+            img = quality_augmentation(img)
+
+        if self.augment:
             # random left-right flip
             lr_flip = True
             if lr_flip and random.random() > 0.5:
@@ -245,6 +300,102 @@ def letterbox(img, height=416, color=(127.5, 127.5, 127.5)):
     img = cv2.resize(img, new_shape, interpolation=cv2.INTER_AREA)  # resized, no border
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # padded square
     return img, ratio, dw, dh
+
+
+# https://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html#undistortpoints
+def fisheye_augmentation(img, targets=(), dx=1, dy=1, k=1, interpolation=cv2.INTER_LINEAR, border_mode=cv2.BORDER_CONSTANT, value=None):
+    height = img.shape[0]
+    width = img.shape[1]
+
+    cx = width * 0.5 + dx
+    cy = height * 0.5 + dy
+
+    fx = width
+    fy = width
+
+    camera_matrix = np.array([[fx, 0, cx],
+                              [0, fy, cy],
+                              [0, 0, 1]], dtype=np.float32)
+    distortion = np.array([k, k, 0, 0, 0], dtype=np.float32)
+
+    map1, map2 = cv2.initUndistortRectifyMap(camera_matrix, distortion, None, None, (width, height), cv2.CV_32FC1)
+    img = cv2.remap(img, map1, map2, interpolation=interpolation, borderMode=border_mode, borderValue=(128, 128, 128))
+
+    # get all distorted coords the image
+    new_bbox_coords_matrix = get_new_corner_coords(targets, width, height, camera_matrix, distortion)
+
+    # calculate the new targets
+    new_targets = get_new_targets(new_bbox_coords_matrix, width, height)
+
+    return img, np.array(new_targets)
+
+def get_new_corner_coords(targets, width, height, camera_matrix, distortion):
+    old_target_matrix = []
+    
+    for target in targets:
+      
+        class_num = target[0]
+        top_left = ((target[1] - target[3] / 2.0) * width, (target[2] - target[4] / 2.0) * height)
+        bottom_left = ((target[1] - target[3] / 2.0) * width, (target[2] + target[4] / 2.0) * height)
+        top_right = ((target[1] + target[3] / 2.0) * width, (target[2] - target[4] / 2.0) * height)
+        bottom_right = ((target[1] + target[3] / 2.0) * width, (target[2] + target[4] / 2.0) * height)
+
+        old_target_matrix.append([class_num, top_left, bottom_left, top_right, bottom_right])
+
+    new_bbox_coords_matrix = []
+    for old_targets in old_target_matrix:
+        new_bbox_coords_list = []
+        current_class = old_targets[0]
+        target_matrix = np.array(old_targets[1:])
+        target_matrix = np.float32(target_matrix[:, np.newaxis, :])
+        distorted_points = cv2.undistortPoints(target_matrix, camera_matrix, distortion, P=camera_matrix)
+        
+        new_bbox_coords_list.append(current_class)
+        for points in distorted_points:
+            new_xy = (points[0][0]), (points[0][1])
+            new_bbox_coords_list.append(new_xy)
+        new_bbox_coords_matrix.append(new_bbox_coords_list)
+
+    return new_bbox_coords_matrix
+
+def get_new_targets(new_bbox_coords_matrix, width, height):
+    new_targets = []
+    for bbox in new_bbox_coords_matrix:
+        class_num = bbox[0]
+        (top_left_x, top_left_y) = bbox[1]
+        (bottom_left_x, bottom_left_y) = bbox[2]
+        (top_right_x, top_right_y) = bbox[3]
+        (bottom_right_x, bottom_right_y) = bbox[4]
+        
+        x_list = [top_left_x, bottom_left_x, top_right_x, bottom_right_x]
+        y_list = [top_left_y, bottom_left_y, top_right_y, bottom_right_y]
+
+        min_x = min(x_list)
+        min_y = min(y_list)
+
+        max_x = max(x_list)
+        max_y = max(y_list)
+
+        new_w = ((max_x - min_x) / 2) / width
+        new_h = ((max_y - min_y) / 2) / height
+        (new_x, new_y) = ( (min_x / width) + new_w, (min_y / height) + new_h)
+
+        # reject bboxes which are outside the image?
+        new_targets.append([class_num, new_x, new_y, 2 * new_w, 2 * new_h])
+
+    return new_targets
+
+def quality_augmentation(img, percentage_decrease=0.50):
+    height = img.shape[0]
+    width = img.shape[1]
+
+    w = int(width * percentage_decrease)
+    h = int(height * percentage_decrease)
+
+    temp = cv2.resize(img, (w, h), interpolation=cv2.INTER_LINEAR)
+    output = cv2.resize(temp, (width, height), interpolation=cv2.INTER_NEAREST)
+
+    return output
 
 
 def random_affine(img, targets=(), degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-2, 2),

@@ -17,8 +17,9 @@ def detect(
         conf_thres=0.5,
         nms_thres=0.5,
         save_txt=False,
-        save_images=True,
-        webcam=False
+        save_images=False,
+        webcam=False,
+        video=False
 ):
     device = torch_utils.select_device()
     if os.path.exists(output):
@@ -41,6 +42,10 @@ def detect(
     if webcam:
         save_images = False
         dataloader = LoadWebcam(img_size=img_size)
+    elif video:
+        save_images = False
+        dataloader = LoadVideo(images, img_size=img_size)
+        im_array = []
     else:
         dataloader = LoadImages(images, img_size=img_size)
 
@@ -48,7 +53,7 @@ def detect(
     classes = load_classes(parse_data_cfg(data_cfg)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
-    for i, (path, img, im0, vid_cap) in enumerate(dataloader):
+    for i, (path, img, im0) in enumerate(dataloader):
         t = time.time()
         save_path = str(Path(output) / Path(path).name)
 
@@ -84,24 +89,19 @@ def detect(
         if webcam:  # Show live webcam
             cv2.imshow(weights, im0)
 
-        if save_images:  # Save generated image with detections
-            if dataloader.mode == 'video':
-                if vid_path != save_path:  # new video
-                    vid_path = save_path
-                    if isinstance(vid_writer, cv2.VideoWriter):
-                        vid_writer.release()  # release previous video writer
-                    width = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                    height = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                    vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'avc1'), fps, (width, height))
-                vid_writer.write(im0)
+        if video:
+            im_array.append(im0)
 
-            else:
-                cv2.imwrite(save_path, im0)
+        if save_images:  # Save generated image with detections
+            cv2.imwrite(save_path, im0)
 
     if save_images and platform == 'darwin':  # macos
         os.system('open ' + output + ' ' + save_path)
 
+    if video:
+        return im_array
+    else:
+        return []
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

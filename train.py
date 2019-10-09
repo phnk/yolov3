@@ -51,20 +51,17 @@ def train(
     nf = int(model.module_defs[model.yolo_layers[0] - 1]['filters'])  # yolo layer size (i.e. 255)
     if resume:  # Load previously saved model
         if transfer:  # Transfer learning
-            chkpt = torch.load(weights + 'yolov3-spp.pt', map_location=device)
+            chkpt = torch.load("weights/yolov3_3_class_org.pt", map_location=device)
             model.load_state_dict({k: v for k, v in chkpt['model'].items() if v.numel() > 1 and v.shape[0] != 255},
                                   strict=False)
             for p in model.parameters():
                 p.requires_grad = True if p.shape[0] == nf else False
 
         else:  # resume from latest.pt
-            chkpt = torch.load(latest, map_location=device)  # load checkpoint
+            chkpt = torch.load("weights/yolov3_3_class_org.pt", map_location=device)  # load checkpoint
             model.load_state_dict(chkpt['model'])
 
-        start_epoch = chkpt['epoch'] + 1
-        if chkpt['optimizer'] is not None:
-            optimizer.load_state_dict(chkpt['optimizer'])
-            best_loss = chkpt['best_loss']
+        start_epoch = 0
         del chkpt
 
     else:  # Initialize model with backbone (optional)
@@ -177,12 +174,9 @@ def train(
                 dataset.img_size = random.choice(range(10, 20)) * 32
                 print('multi_scale img_size = %g' % dataset.img_size)
 
-        # Calculate mAP
-        if opt.nosave and epoch < 10:
-            results = (0, 0, 0, 0, 0)
-        else:
-            with torch.no_grad():
-                results = test.test(cfg, data_cfg, batch_size=batch_size, img_size=img_size, model=model, conf_thres=0.1)
+
+        with torch.no_grad():
+            results = test.test(cfg, data_cfg, batch_size=batch_size, img_size=img_size, model=model, conf_thres=0.1)
 
         # Write epoch results
         with open('results.txt', 'a') as file:
@@ -194,7 +188,7 @@ def train(
             best_loss = test_loss
 
         # Save training results
-        save = True and not opt.nosave
+        save = True
         if save:
             # Create checkpoint
             chkpt = {'epoch': epoch,
