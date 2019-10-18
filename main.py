@@ -25,13 +25,13 @@ def test_video(video_path, yolo_cfg, data_cfg, weights, data_name):
 
 if __name__ == "__main__":
     yolo_cfg = "cfg/yolov3-3cls.cfg"
-    data_name = "3_class_indoor.data"
-    data_cfg = "cfg/" + data_name 
+    data_name = "full dataset.data"
+    data_cfg = "data/" + data_name 
     best_weights = "weights/best.pt"
-    paths = ["/home/carbor/code/yolov3/data/single class test/test/2_test.MP4", "/home/carbor/code/yolov3/data/single class test/test/3_test.MP4", "/home/carbor/volvo_vid/01.avi"]
+    paths = ["/home/carbor/code/yolov3/data/test_videos/indoor_test_1.MP4", "/home/carbor/code/yolov3/data/test_videos/indoor_test_2.MP4", "/home/carbor/code/yolov3/data/test_videos/volvo_test.avi"]
     img_size = 416
     resume = True # used for transfer learning
-    epochs = 200
+    epochs = 10000
     batch_size = 3
 
     training = True

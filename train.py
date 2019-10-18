@@ -205,7 +205,7 @@ def train(
                 torch.save(chkpt, best)
 
             # Save backup every 10 epochs (optional)
-            if epoch > 0 and epoch % 10 == 0:
+            if epoch > 0 and epoch % 100 == 0:
                 torch.save(chkpt, weights + 'backup%g.pt' % epoch)
 
             # Delete checkpoint
