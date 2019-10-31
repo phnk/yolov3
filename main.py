@@ -31,7 +31,7 @@ if __name__ == "__main__":
     paths = ["/home/carbor/code/yolov3/data/test_videos/indoor_test_1.MP4", "/home/carbor/code/yolov3/data/test_videos/indoor_test_2.MP4", "/home/carbor/code/yolov3/data/test_videos/volvo_test.avi"]
     img_size = 416
     resume = True # used for transfer learning
-    epochs = 10000
+    epochs = 500
     batch_size = 3
 
     training = True
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             resume=resume,
             epochs=epochs,
             batch_size=batch_size,
-            multi_scale=True,
+            multi_scale=False,
             transfer=False
         )
     
