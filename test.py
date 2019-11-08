@@ -15,7 +15,7 @@ def test(
         batch_size=16,
         img_size=416,
         iou_thres=0.5,
-        conf_thres=0.001,
+        conf_thres=0.55,
         nms_thres=0.5,
         save_json=False,
         model=None
@@ -176,15 +176,16 @@ def test(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3-spp.cfg', help='cfg file path')
-    parser.add_argument('--data-cfg', type=str, default='data/coco.data', help='coco.data file path')
-    parser.add_argument('--weights', type=str, default='weights/yolov3-spp.weights', help='path to weights file')
+    parser.add_argument('--batch-size', type=int, default=1, help='size of each image batch')
+    parser.add_argument('--cfg', type=str, default='cfg/yolov3-3cls.cfg', help='cfg file path')
+    parser.add_argument('--data-cfg', type=str, default='data/testing.data', help='coco.data file path')
+    parser.add_argument('--weights', type=str, default='weights/best.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
-    parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
     parser.add_argument('--save-json', action='store_true', help='save a cocoapi-compatible JSON results file')
-    parser.add_argument('--img-size', type=int, default=416, help='size of each image dimension')
+    parser.add_argument('--img-size', type=int, default=1344, help='size of each image dimension')
+
     opt = parser.parse_args()
     print(opt, end='\n\n')
 
