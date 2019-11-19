@@ -53,6 +53,8 @@ def detect(
     classes = load_classes(parse_data_cfg(data_cfg)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
 
+    tt = 0
+
     for i, (path, img, im0) in enumerate(dataloader):
         t = time.time()
         save_path = str(Path(output) / Path(path).name)
@@ -85,6 +87,8 @@ def detect(
                 plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
 
         print('Done. (%.3fs)' % (time.time() - t))
+        
+        tt += time.time() - t
 
         if webcam:  # Show live webcam
             cv2.imshow(weights, im0)
@@ -94,6 +98,8 @@ def detect(
 
         if save_images:  # Save generated image with detections
             cv2.imwrite(save_path, im0)
+
+    print("mean time: {}".format(tt/len(dataloader)))
 
     if save_images and platform == 'darwin':  # macos
         os.system('open ' + output + ' ' + save_path)

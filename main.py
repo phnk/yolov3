@@ -15,10 +15,9 @@ def test_video(video_path, yolo_cfg, data_cfg, weights, data_name, img_size):
 
         # works on windows, might need another codec if linux
         codec = cv2.VideoWriter_fourcc("M", "J", "P", "G")
-        out = cv2.VideoWriter("outpy_{}_{}.avi".format(data_name, datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")), codec, 30, out_size)
-        start_time = time.time()
+        #out = cv2.VideoWriter("outpy_{}_{}.avi".format(data_name, datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")), codec, 30, out_size)
         imgs = detect(yolo_cfg, data_cfg, weights, video_path, conf_thres=0.55, video=True, webcam=False, img_size=img_size)
-        print("infernece time: {}".format((time.time() - start_time)/len(imgs)))
+        exit(1)
         for im in imgs:
             res = cv2.resize(im, out_size)
             out.write(res)
@@ -30,7 +29,7 @@ if __name__ == "__main__":
     data_cfg = "data/" + data_name 
     best_weights = "weights/best.pt"
     paths = glob.glob("/home/carbor/data/raw test videos/*.*") 
-    img_size = 1333
+    img_size = 128
     resume = True # used for transfer learning
     epochs = 500
     batch_size = 1
