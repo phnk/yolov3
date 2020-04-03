@@ -248,9 +248,6 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             # convert xyxy to xywh
             labels[:, 1:5] = xyxy2xywh(labels[:, 1:5]) / self.img_size
 
-        if self.augment:
-            img, labels = fisheye_augmentation(img, labels)
-
         if self.augment and random.random() > 0.5:
             img = quality_augmentation(img)
 

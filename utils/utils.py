@@ -509,9 +509,9 @@ def plot_images(imgs, targets, fname='images.jpg'):
         plt.plot(boxes[[0, 2, 2, 0, 0]], boxes[[1, 1, 3, 3, 1]], '.-')
         plt.axis('off')
     fig.tight_layout()
-    plt.show()
-    #fig.savefig(fname, dpi=300)
-    #plt.close()
+    #plt.show()
+    fig.savefig(fname, dpi=300)
+    plt.close()
 
 
 def plot_results(start=0, stop=0):  # from utils.utils import *; plot_results()
