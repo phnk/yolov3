@@ -1,5 +1,5 @@
 # Note
-This repo was used to test a hypothosis and write a subsequential paper. The paper can be found at SoonTM. **Full credit to Ultralytics for the implementation of YOLOv3**. Their repo can be found at https://github.com/ultralytics/yolov3.
+This repo was used to test a hypothosis and write a subsequential paper. The paper can be found at https://ieeexplore.ieee.org/document/9207577. **Full credit to Ultralytics for the implementation of YOLOv3**. Their repo can be found at https://github.com/ultralytics/yolov3.
 
 The original README can be found below:
 ======
